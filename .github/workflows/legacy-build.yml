@@ -107,7 +107,9 @@ jobs:
       matrix:
         version: ${{ fromJSON(needs.changes.outputs.versions) }}
     env:
-      GHCR_IMAGE: ghcr.io/${{ github.repository }}
+      # Pinned on purpose: deriving it from github.repository would change the
+      # published image name when the repository is renamed (see #209).
+      GHCR_IMAGE: ghcr.io/plone/plone.docker
       DOCKERHUB_IMAGE: plone/plone
       # Secrets cannot be referenced from an `if:` condition, so the presence
       # check is hoisted into a job-level env var and the Docker Hub steps gate

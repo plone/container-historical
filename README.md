@@ -7,9 +7,9 @@
 >
 > They remain useful for content extraction, migration rehearsal and archaeology.
 > For a supported Plone, use Plone 6:
-> [plone-backend](https://github.com/plone/plone-backend),
-> [plone-frontend](https://github.com/plone/plone-frontend) and
-> [plone-zeo](https://github.com/plone/plone-zeo). See the
+> [plone-backend](https://github.com/plone/container-backend),
+> [plone-frontend](https://github.com/plone/container-frontend) and
+> [plone-zeo](https://github.com/plone/container-zeo). See the
 > [release schedule](https://plone.org/download/release-schedule).
 
 # Plone
@@ -19,7 +19,7 @@
 ## Features
 
 - Images for **Plone 5.x** and **Plone 4.x**, plus a `legacy/` matrix reaching back to **Plone 1.0**
-- Images for **Plone 6** are available at https://github.com/plone/plone-backend
+- Images for **Plone 6** are available at https://github.com/plone/container-backend
 - Enable add-ons via environment variables
 - Built-in RelStorage support, configurable via environment variables (requires Plone 5.2+)
 - Built-in LDAP/AD support via pas.plugins.ldap (requires Plone 5.1+)
@@ -276,8 +276,8 @@ Full documentation for end users can be found online at [docs.plone.org](https:/
 
 ## Contribute
 
-- Issue Tracker: http://github.com/plone/plone.docker/issues
-- Source Code: http://github.com/plone/plone.docker
+- Issue Tracker: http://github.com/plone/container-historical/issues
+- Source Code: http://github.com/plone/container-historical
 - Documentation: http://docs.plone.org/
 
 ## Support
