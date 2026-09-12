@@ -25,7 +25,7 @@ the `Plone Community <https://plone.org>`_.
    Because of the way how `Docker, Inc. <https://docker.com>`_ handles 'official images', sometimes the releases
    are lagging behind.
 
-   You can get always the latest releases from our own `repository <https://github.com/plone/plone.docker>`_ on Docker Hub.
+   You can get always the latest releases from our own `repository <https://github.com/plone/container-historical>`_ on Docker Hub.
 
 
 These images are a compromise between the `best practices for writing Dockerfiles <https://docs.docker.com/engine/userguide/eng-image/dockerfile_best-practices/>`_
