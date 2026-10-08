@@ -34,15 +34,15 @@ listed; earlier point releases remain in the repository and on Docker Hub.
 
 | Plone | Python | Variant | Built from | Published tags |
 |---|---|---|---|---|
-| 5.2.14 | 3.8 | Debian | [`5.2/5.2.14/debian/Dockerfile`](5.2/5.2.14/debian/Dockerfile) | `latest`, `5`, `5.2`, `5.2.14`, `python38`, `5-python38`, `5.2-python38`, `5.2.14-python38` |
+| 5.2.14 | 3.8 | Debian | [`5.2/5.2.14/debian/Dockerfile`](5.2/5.2.14/debian/Dockerfile) | `latest`, `5`, `5.2`, `5.2.14`, `python38`, `5-python38`, `5.2-python38`, `5.2.14-python38`, `5.2-demo`, `5.2.14-demo` |
 | 5.2.14 | 3.8 | Alpine | [`5.2/5.2.14/alpine/Dockerfile`](5.2/5.2.14/alpine/Dockerfile) | *not published* |
 | 5.2.14 | 3.7 | Debian | [`5.2/5.2.14/python37/Dockerfile`](5.2/5.2.14/python37/Dockerfile) | *not published* |
 | 5.2.14 | 2.7 | Debian | [`5.2/5.2.14/python2/Dockerfile`](5.2/5.2.14/python2/Dockerfile) | *not published* |
-| 5.1.6 | 2.7 | Debian | [`5.1/5.1.6/debian/Dockerfile`](5.1/5.1.6/debian/Dockerfile) | `5.1`, `5.1.6` |
+| 5.1.6 | 2.7 | Debian | [`5.1/5.1.6/debian/Dockerfile`](5.1/5.1.6/debian/Dockerfile) | `5.1`, `5.1.6`, `5.1-demo`, `5.1.6-demo` |
 | 5.1.6 | 2.7 | Alpine | [`5.1/5.1.6/alpine/Dockerfile`](5.1/5.1.6/alpine/Dockerfile) | `5.1-alpine`, `5.1.6-alpine` |
-| 5.0.8 | 2.7 | Debian | [`5.0/5.0.8/debian/Dockerfile`](5.0/5.0.8/debian/Dockerfile) | `5.0`, `5.0.8` |
+| 5.0.8 | 2.7 | Debian | [`5.0/5.0.8/debian/Dockerfile`](5.0/5.0.8/debian/Dockerfile) | `5.0`, `5.0.8`, `5.0-demo`, `5.0.8-demo` |
 | 5.0.8 | 2.7 | Alpine | [`5.0/5.0.8/alpine/Dockerfile`](5.0/5.0.8/alpine/Dockerfile) | *not published* |
-| 4.3.19 | 2.7 | Debian | [`4.3/4.3.19/debian/Dockerfile`](4.3/4.3.19/debian/Dockerfile) | `4`, `4.3`, `4.3.19` |
+| 4.3.19 | 2.7 | Debian | [`4.3/4.3.19/debian/Dockerfile`](4.3/4.3.19/debian/Dockerfile) | `4`, `4.3`, `4.3.19`, `4.3-demo`, `4.3.19-demo` |
 | 4.3.19 | 2.7 | Alpine | [`4.3/4.3.19/alpine/Dockerfile`](4.3/4.3.19/alpine/Dockerfile) | `4-alpine`, `4.3-alpine`, `4.3.19-alpine` |
 | 4.2.6 | 2.7.18 | Debian *(legacy)* | [`legacy/4.2/Dockerfile`](legacy/4.2/Dockerfile) | `4.2`, `4.2.6`, `4.2-demo`, `4.2.6-demo` |
 | 4.1.6 | 2.6.9 | Debian *(legacy)* | [`legacy/4.1/Dockerfile`](legacy/4.1/Dockerfile) | `4.1`, `4.1.6`, `4.1-demo`, `4.1.6-demo` |
@@ -65,6 +65,7 @@ alone do not say which:
 |---|---|---|
 | 4.3 - 5.2 | the official `plone` image | `docker pull plone:5.2.14` |
 | 5.2.14 (Debian) | also `plone/plone` and GHCR | `docker pull plone/plone:5.2.14`<br>`docker pull ghcr.io/plone/plone.docker:5.2.14` |
+| 4.3 - 5.2 `-demo` | `plone/plone` and GHCR only | `docker pull plone/plone:5.2-demo`<br>`docker pull ghcr.io/plone/plone.docker:5.2-demo` |
 | `legacy/` | `plone/plone` and GHCR | `docker pull plone/plone:4.2`<br>`docker pull ghcr.io/plone/plone.docker:4.2` |
 
 The 5.2.14 tags on `plone/plone` and GHCR are copies of the official image, made
@@ -79,7 +80,9 @@ them.
 prefer `plone:<tag>`.
 
 Each legacy series publishes four tags — the full version and the series, each
-with a `-demo` counterpart that ships a Plone site already created.
+with a `-demo` counterpart that ships a Plone site already created. The 4.3 -
+5.2 series have the same `-demo` counterparts, built on the official images;
+see [`demo/`](demo/).
 
 The 4.3 - 5.2 images take Python from an upstream `python:*` base image. The
 `legacy/` images build the interpreter from source, because no usable base

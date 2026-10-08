@@ -1,0 +1,115 @@
+name: demo build
+
+# Builds the -demo variants of the 4.3 - 5.2 images under demo/: the official
+# image for each series, plus a database with a Plone site already created.
+#
+# The base images are not rebuilt. They are the official `plone` images,
+# pinned by digest in demo/Makefile; see mirror-official.yml for why these
+# series cannot be rebuilt faithfully.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'demo/**'
+      - 'legacy/shared/create-plone-site.sh'
+      - 'legacy/shared/smoke-test.sh'
+      - 'legacy/shared/json-probe.py'
+      - '.github/workflows/demo-build.yml'
+  pull_request:
+    paths:
+      - 'demo/**'
+      - 'legacy/shared/create-plone-site.sh'
+      - 'legacy/shared/smoke-test.sh'
+      - 'legacy/shared/json-probe.py'
+      - '.github/workflows/demo-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: make lint
+        working-directory: demo
+        run: make lint
+
+  build:
+    needs:
+      - lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep in sync with SERIES in demo/Makefile.
+        version: ["4.3", "5.0", "5.1", "5.2"]
+    env:
+      # Pinned on purpose, as in legacy-build.yml (see #209).
+      GHCR_IMAGE: ghcr.io/plone/plone.docker
+      DOCKERHUB_IMAGE: plone/plone
+      # Secrets cannot be referenced from an `if:` condition; see
+      # legacy-build.yml for the same pattern.
+      HAS_DOCKERHUB: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Resolve full version from the Makefile
+        id: ver
+        run: |
+          FULL=$(sed -n "s/^FULL_VERSION_${{ matrix.version }} := //p" demo/Makefile)
+          test -n "${FULL}"
+          echo "full=${FULL}" >> "${GITHUB_OUTPUT}"
+
+      # Starts the official image, creates the site through
+      # legacy/shared/create-plone-site.sh, stops Zope cleanly and builds
+      # demo/Dockerfile on top. No buildx builder is set up on purpose: the
+      # plain `docker build` uses the daemon's own, which is all this needs.
+      - name: Build -demo image
+        working-directory: demo
+        run: make demo-${{ matrix.version }}
+
+      # SMOKE_EXPECT_SITE=1 asserts the site is ALREADY there on first start,
+      # with no creation step - the only check that distinguishes a correctly
+      # seeded demo image from its own base image.
+      - name: Smoke test -demo
+        working-directory: demo
+        run: make test-demo-${{ matrix.version }}
+
+      - name: Login to GHCR
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Docker Hub
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && env.HAS_DOCKERHUB == 'true'
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Two tags per series: the full version and the series, each -demo.
+      - name: Push
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          for tag in "${{ steps.ver.outputs.full }}-demo" "${{ matrix.version }}-demo"; do
+            docker tag "plone-demo:${tag}" "${GHCR_IMAGE}:${tag}"
+            docker push "${GHCR_IMAGE}:${tag}"
+            if [ "${HAS_DOCKERHUB}" = "true" ]; then
+              docker tag "plone-demo:${tag}" "${DOCKERHUB_IMAGE}:${tag}"
+              docker push "${DOCKERHUB_IMAGE}:${tag}"
+            fi
+          done
+          if [ "${HAS_DOCKERHUB}" != "true" ]; then
+            echo "::notice::DOCKERHUB_USERNAME/DOCKERHUB_TOKEN not set - pushed to GHCR only."
+          fi

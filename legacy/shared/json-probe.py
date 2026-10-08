@@ -27,10 +27,18 @@ assert mod.loads(encoded) == payload, encoded
 
 # Non-ASCII has to survive as unicode: Plone content is full of it, and a
 # codec-level break would otherwise only surface on real data.
+#
+# [V 2026-10-08] The probe also runs on Python 3 (Plone 5.2), where the text
+# type is `str` and print is a function. The single-argument print(...) below
+# is valid in every Python from 2.3 on.
+try:
+    text_type = unicode
+except NameError:
+    text_type = str
 text = mod.loads('{"k": "\\u00e7\\u00e3o"}')["k"]
-assert isinstance(text, unicode), repr(text)
+assert isinstance(text, text_type), repr(text)
 assert len(text) == 3, repr(text)
 assert mod.loads(mod.dumps({"k": text}))["k"] == text, repr(text)
 
-print "JSON-GATE-OK %s %s" % (
-    mod.__name__, getattr(mod, "__version__", "stdlib"))
+print("JSON-GATE-OK %s %s" % (
+    mod.__name__, getattr(mod, "__version__", "stdlib")))

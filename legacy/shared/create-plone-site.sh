@@ -169,7 +169,22 @@ echo "OK: site root renders Plone markup via ${SITE_MARKER} ($(printf '%s' "${SI
 # the regression being guarded against IS a discovery that finds nothing, and
 # a guard keyed on `${FORCED_PROFILES}` would go quiet in exactly that case.
 # Verified by mutation — neutering the discovery must turn this red.
+#
+# [V 2026-10-08] Plone 5 forces plonetheme.barceloneta:default, which is a
+# Diazo theme rather than a skin: portal_skins/manage_propertiesForm has no
+# selected option at all there, so the skin check reads nothing and fails a
+# correctly themed site. The theme's resources are served under
+# ++theme++barceloneta, so look for that in the rendered page instead.
 case "${ADD_FORM:-}" in
+    *plonetheme.barceloneta*)
+        if ! printf '%s' "${SITE_HTML}" | grep -q '++theme++barceloneta'; then
+            echo "FAIL: the add-form forced plonetheme.barceloneta, but the site" >&2
+            echo "      does not render through ++theme++barceloneta — the theme" >&2
+            echo "      profile was not applied" >&2
+            exit 1
+        fi
+        echo "OK: theme profiles applied — site renders through ++theme++barceloneta"
+        ;;
     *plonetheme.*)
         DEFAULT_SKIN=$(curl -sf -u "${AUTH}" \
             "${BASE_URL}/${SITE_ID}/portal_skins/manage_propertiesForm" |
