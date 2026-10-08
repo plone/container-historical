@@ -1,4 +1,6 @@
 # Changelog
+- Publish Plone 5.2.14 as `plone/plone:5.2.14` (and GHCR), copied by digest from the official `plone:5.2.14`. `plone/plone:latest`, `5`, `5.2` and `python38` now point at 5.2.14 instead of 5.2.4. Refs #210
+  [@ericof]
 - Add Plone 1.0 image to the legacy matrix, completing it. Refs #197
   [@ericof]
 - Add Plone 2.0 image to the legacy matrix. Refs #196

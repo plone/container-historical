@@ -1,0 +1,73 @@
+name: mirror official
+
+# Copies tags of the official `plone` image (docker.io/library/plone) into
+# plone/plone and GHCR, by digest, without rebuilding them. The list of tags
+# and their pinned digests is mirror/official-tags.txt.
+#
+# Why copy rather than build: the 4.3 - 5.2 images were built and published by
+# Docker Official Images from this repository's own Dockerfiles, and those
+# Dockerfiles can no longer be rebuilt faithfully: their Debian releases have
+# left deb.debian.org, so a rebuild today either fails at apt-get or produces a
+# different image. A copy is the image that was released.
+#
+# Pull requests only verify that every source tag still resolves to its pinned
+# digest. Publishing is manual: run this workflow from `main`.
+
+on:
+  pull_request:
+    paths:
+      - 'mirror/**'
+      - '.github/workflows/mirror-official.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    env:
+      # Pinned on purpose, as in legacy-build.yml: deriving it from
+      # github.repository would change the image name when the repository is
+      # renamed (see #209).
+      GHCR_IMAGE: ghcr.io/plone/plone.docker
+      DOCKERHUB_IMAGE: docker.io/plone/plone
+      PUBLISH: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && '1' || '0' }}
+      # Secrets cannot be referenced from an `if:` condition; see
+      # legacy-build.yml for the same pattern.
+      HAS_DOCKERHUB: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        if: env.PUBLISH == '1'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Docker Hub
+        if: env.PUBLISH == '1' && env.HAS_DOCKERHUB == 'true'
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Unlike legacy-build.yml, a missing Docker Hub login fails the run
+      # instead of falling back to GHCR only: Docker Hub is the target that
+      # matters here, and a green run that skipped it would read as done.
+      - name: Mirror
+        run: |
+          if [ "${PUBLISH}" = "1" ] && [ "${HAS_DOCKERHUB}" != "true" ]; then
+            echo "::error::DOCKERHUB_USERNAME/DOCKERHUB_TOKEN not set - cannot publish to ${DOCKERHUB_IMAGE}."
+            exit 1
+          fi
+          TARGETS="${DOCKERHUB_IMAGE} ${GHCR_IMAGE}" ./mirror/mirror-official.sh

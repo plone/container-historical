@@ -64,11 +64,19 @@ alone do not say which:
 | Rows | Registry | Pull with |
 |---|---|---|
 | 4.3 - 5.2 | the official `plone` image | `docker pull plone:5.2.14` |
+| 5.2.14 (Debian) | also `plone/plone` and GHCR | `docker pull plone/plone:5.2.14`<br>`docker pull ghcr.io/plone/plone.docker:5.2.14` |
 | `legacy/` | `plone/plone` and GHCR | `docker pull plone/plone:4.2`<br>`docker pull ghcr.io/plone/plone.docker:4.2` |
 
-`plone/plone` also carries its own 4.3 - 5.2 tags, but those are a mirror last
-pushed in **March 2021** and are older than the official image's. For anything
-4.3 and above, prefer `plone:<tag>`.
+The 5.2.14 tags on `plone/plone` and GHCR are copies of the official image, made
+by digest rather than rebuilt: `plone/plone:5.2.14` *is* `plone:5.2.14`. The
+tags copied, and the digests they are pinned to, are listed in
+[`mirror/official-tags.txt`](mirror/official-tags.txt); the
+[`mirror official`](.github/workflows/mirror-official.yml) workflow publishes
+them.
+
+`plone/plone`'s other 4.3 - 5.2 tags come from an earlier mirror, last pushed in
+**March 2021**, and lag behind the official image. For any other 4.3 - 5.2 tag,
+prefer `plone:<tag>`.
 
 Each legacy series publishes four tags — the full version and the series, each
 with a `-demo` counterpart that ships a Plone site already created.

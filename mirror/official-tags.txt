@@ -1,0 +1,21 @@
+# Tags copied from the official `plone` image (docker.io/library/plone) into
+# plone/plone and GHCR by mirror/mirror-official.sh.
+#
+# One `<tag> <digest>` pair per line. The digest is the official image's
+# manifest list for that tag, pinned so the copy is exactly what was reviewed:
+# if the official tag ever moves, the mirror fails instead of following it.
+#
+# Resolve a digest with:
+#   docker buildx imagetools inspect --format '{{.Manifest.Digest}}' plone:<tag>
+
+# Plone 5.2.14, Python 3.8, Debian: built by Docker Official Images from
+# 5.2/5.2.14/debian at plone/plone.docker@a3a9c7e (2024-09-27). Same tag set as
+# the official image; the floating tags previously pointed at 5.2.4.
+5.2.14          sha256:e73ae6e9864e43d4d49169f9fda09012d48c7720e8e204a8b0304b764600923b
+5.2.14-python38 sha256:e73ae6e9864e43d4d49169f9fda09012d48c7720e8e204a8b0304b764600923b
+5.2             sha256:e73ae6e9864e43d4d49169f9fda09012d48c7720e8e204a8b0304b764600923b
+5.2-python38    sha256:e73ae6e9864e43d4d49169f9fda09012d48c7720e8e204a8b0304b764600923b
+5               sha256:e73ae6e9864e43d4d49169f9fda09012d48c7720e8e204a8b0304b764600923b
+5-python38      sha256:e73ae6e9864e43d4d49169f9fda09012d48c7720e8e204a8b0304b764600923b
+python38        sha256:e73ae6e9864e43d4d49169f9fda09012d48c7720e8e204a8b0304b764600923b
+latest          sha256:e73ae6e9864e43d4d49169f9fda09012d48c7720e8e204a8b0304b764600923b
