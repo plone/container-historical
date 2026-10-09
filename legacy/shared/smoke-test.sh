@@ -66,25 +66,36 @@ echo "OK: /manage_main authenticates as admin:${ADMIN_PW}"
 # The first 3.1 run "passed" this check against a path that did not exist. So
 # glob the directory, and treat *finding no log at all* as a failure — that way
 # a future rename breaks the build instead of quietly disabling the gate.
-LOG_FILES=$(docker exec "${NAME}" sh -c 'ls /data/log/*.log 2>/dev/null' 2>/dev/null || true)
-if [ -z "${LOG_FILES}" ]; then
-    echo "FAIL: no /data/log/*.log found — cannot verify product load" >&2
-    docker exec "${NAME}" ls -la /data/log/ >&2 || true
-    exit 1
+#
+# [V 2026-10-08] SMOKE_LOG_SOURCE=docker reads the container's own output
+# instead, for images that log to stdout/stderr and write no log file at all:
+# the official Plone 5.2 image does, since 5.2.5. The empty-log check still
+# applies there, so a container that printed nothing still fails.
+PRODUCT_PATTERN='ERROR Zope (Could not import|Couldn.t install)'
+if [ "${SMOKE_LOG_SOURCE:-file}" = "docker" ]; then
+    LOG_TEXT=$(docker logs "${NAME}" 2>&1 || true)
+    if [ -z "${LOG_TEXT}" ]; then
+        echo "FAIL: the container has logged nothing — cannot verify product load" >&2
+        exit 1
+    fi
+    echo "checking product load in: docker logs"
+else
+    LOG_FILES=$(docker exec "${NAME}" sh -c 'ls /data/log/*.log 2>/dev/null' 2>/dev/null || true)
+    if [ -z "${LOG_FILES}" ]; then
+        echo "FAIL: no /data/log/*.log found — cannot verify product load" >&2
+        docker exec "${NAME}" ls -la /data/log/ >&2 || true
+        exit 1
+    fi
+    echo "checking product load in: $(echo "${LOG_FILES}" | tr '\n' ' ')"
+    LOG_TEXT=$(docker exec "${NAME}" sh -c 'cat /data/log/*.log' 2>/dev/null || true)
 fi
-echo "checking product load in: $(echo "${LOG_FILES}" | tr '\n' ' ')"
 
-# -h suppresses filename prefixes and `wc -l` counts matching lines across every
-# log at once, which avoids needing `bc` to sum per-file counts from `grep -c`.
-PRODUCT_ERRORS=$(docker exec "${NAME}" sh -c \
-    'grep -hE "ERROR Zope (Could not import|Couldn.t install)" /data/log/*.log 2>/dev/null | wc -l' \
-    2>/dev/null | tr -d ' ')
+PRODUCT_ERRORS=$(printf '%s\n' "${LOG_TEXT}" | grep -cE "${PRODUCT_PATTERN}" || true)
 [ -n "${PRODUCT_ERRORS}" ] || PRODUCT_ERRORS=0
 
 if [ "${PRODUCT_ERRORS}" -gt 0 ]; then
-    echo "WARNING: ${PRODUCT_ERRORS} product import/install failure(s) in event.log:" >&2
-    docker exec "${NAME}" sh -c \
-        'grep -hE "ERROR Zope (Could not import|Couldn.t install)" /data/log/*.log' >&2 || true
+    echo "WARNING: ${PRODUCT_ERRORS} product import/install failure(s) in the log:" >&2
+    printf '%s\n' "${LOG_TEXT}" | grep -E "${PRODUCT_PATTERN}" >&2 || true
     if [ "${SMOKE_STRICT_PRODUCTS:-1}" = "1" ]; then
         echo "FAIL: products failed to load (set SMOKE_STRICT_PRODUCTS=0 to allow)" >&2
         exit 1
@@ -124,13 +135,18 @@ if [ "${SMOKE_JSON:-1}" = "1" ]; then
     test -f "${JSON_PROBE}"
     JSON_OUT=$(docker run --rm -v "${JSON_PROBE}:/json-probe.py:ro" \
         "${IMAGE}" run /json-probe.py 2>&1) || true
-    if ! printf '%s' "${JSON_OUT}" | grep -q 'JSON-GATE-OK'; then
+    #
+    # [V 2026-10-08] The marker must START a line. A probe that fails to
+    # compile prints a traceback quoting its own source — including the line
+    # that would have printed the marker — so an unanchored match passed the
+    # gate on Plone 5.2, where the probe had not run at all.
+    if ! printf '%s\n' "${JSON_OUT}" | grep -q '^JSON-GATE-OK '; then
         echo "FAIL: no working JSON module reachable from the script runner" >&2
         printf '%s\n' "${JSON_OUT}" | tail -n 20 >&2
         exit 1
     fi
-    echo "OK: JSON round-trip via $(printf '%s' "${JSON_OUT}" |
-        sed -n 's/.*JSON-GATE-OK //p')"
+    echo "OK: JSON round-trip via $(printf '%s\n' "${JSON_OUT}" |
+        sed -n 's/^JSON-GATE-OK //p')"
 else
     echo "NOTE: JSON gate skipped by SMOKE_JSON=0"
 fi

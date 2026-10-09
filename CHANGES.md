@@ -1,4 +1,8 @@
 # Changelog
+- Add `-demo` variants of Plone 4.3, 5.0, 5.1 and 5.2 (`4.3-demo`, `5.0-demo`, `5.1-demo`, `5.2-demo` and their full-version tags), each the official image with a Plone site already created at `/Plone`. Refs #211
+  [@ericof]
+- Fix the smoke test's JSON gate passing when the probe script failed to compile, and make the probe run on Python 3. Refs #211
+  [@ericof]
 - Publish Plone 5.2.14 as `plone/plone:5.2.14` (and GHCR), copied by digest from the official `plone:5.2.14`. `plone/plone:latest`, `5`, `5.2` and `python38` now point at 5.2.14 instead of 5.2.4. Refs #210
   [@ericof]
 - Add Plone 1.0 image to the legacy matrix, completing it. Refs #197
