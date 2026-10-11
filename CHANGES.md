@@ -1,4 +1,6 @@
 # Changelog
+- Build the Plone 4.2 image's Python 2.7.18 with `ssl` (OpenSSL 3.0, plus the CA bundle), so Zope can send mail over STARTTLS and fetch HTTPS URLs. Mail now uses STARTTLS whenever the server offers it, and HTTPS certificates are verified. The previous `4.2` / `4.2.6` image remains available as `plone/plone@sha256:8529447c9e8b237bfb7b2729d01e02a05139500d9f65f26e50c538d47b524e59`. Refs #215
+  [@ericof]
 - Add `-demo` variants of Plone 4.3, 5.0, 5.1 and 5.2 (`4.3-demo`, `5.0-demo`, `5.1-demo`, `5.2-demo` and their full-version tags), each the official image with a Plone site already created at `/Plone`. Refs #211
   [@ericof]
 - Fix the smoke test's JSON gate passing when the probe script failed to compile, and make the probe run on Python 3. Refs #211
