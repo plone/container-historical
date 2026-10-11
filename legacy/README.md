@@ -139,6 +139,26 @@ except ImportError:
     import json
 ```
 
+## TLS (`ssl`)
+
+**Only 4.2 has `ssl`.** In every other series `import ssl` fails, so Zope
+cannot make outgoing TLS connections. That rules out HTTPS fetches and mail
+over STARTTLS or SMTPS. zope.sendmail, like the mailers before it, does not
+raise an error. When `socket.ssl` is missing, it skips STARTTLS and sends in
+plain text, and a server that requires TLS then refuses the mail.
+
+| Python | Series | `ssl` | Why |
+|---|---|---|---|
+| 2.7.18 | 4.2 | yes, OpenSSL 3.0 (bookworm) | `_ssl.c` builds against OpenSSL 3 |
+| 2.6.9 | 4.0, 4.1 | no | `_ssl.c` needs the pre-1.1 OpenSSL structs (`invalid use of incomplete typedef 'X509_NAME_ENTRY'`) |
+| 2.4.6, 2.3.7 | 1.0 – 3.3 | no | older still |
+
+[V 2026-10-11] A static OpenSSL 1.0.2u does make 2.4 and 2.6 work, with TLS 1.2
+ciphers for STARTTLS and HTTPS. It is not shipped. 1.0.2 has been end-of-life
+since 2019, and neither interpreter verifies certificates or sends SNI. For
+mail from those series, run an SMTP relay next to the container that accepts
+plain SMTP on the internal network and does TLS upstream.
+
 ## ZEO
 
 The image becomes a ZEO client by setting `ZEO_ADDRESS`. Nothing else changes:
@@ -238,7 +258,7 @@ Shared build logic lives in `shared/`:
 
 | File | Purpose |
 |---|---|
-| `build-python2.sh` | Builds a historical CPython 2.x with the multiarch and toolchain mitigations |
+| `build-python2.sh` | Builds a historical CPython 2.x with the multiarch and toolchain mitigations; `PYTHON_REQUIRE_SSL=1` gates on `ssl` |
 | `build-pil.sh` | Builds PIL 1.1.6 with working JPEG + PNG |
 | `build-plone-buildout.sh` | Offline buildout from a UnifiedInstaller's bundled cache |
 | `docker-entrypoint-buildout.sh` | Buildout-era entrypoint (`bin/instance fg`, `parts/instance/` paths) |

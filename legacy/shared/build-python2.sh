@@ -4,6 +4,10 @@
 # Usage: build-python2.sh <src-tarball> <version> <prefix>
 #   e.g. build-python2.sh /dist/python.tgz 2.4.6 /opt/python2.4
 #
+# Set PYTHON_REQUIRE_SSL=1 to make `ssl` part of the gate. Only 2.7 can use it:
+# its _ssl.c builds against the OpenSSL 3.0 that bookworm ships, while 2.6 and
+# older need the pre-1.1 OpenSSL structs and fail to compile.
+#
 # Shared by every tarball-era image (Plone 2.0 -> 3.1). The mitigations below
 # were validated on Python 2.4.6 (gate G1, 2026-08-20) and are re-verified by
 # this script's own guards on every build, for every version.
@@ -85,8 +89,10 @@ fi
 #                   2.6+ already set -fwrapv themselves; overriding BASECFLAGS
 #                   there would REPLACE the flags configure worked out, so it is
 #                   only forced on interpreters that lack it.
-# _ssl, curses, bsddb, tkinter and nis are EXPECTED to fail to build against a
-# modern userland. They are optional; ZServer speaks plain HTTP.
+# curses, bsddb, tkinter and nis are EXPECTED to fail to build against a
+# modern userland. They are optional; ZServer speaks plain HTTP. _ssl builds
+# only when the image installs libssl-dev and the interpreter is 2.7 (see
+# PYTHON_REQUIRE_SSL above).
 CONF_ARGS="--prefix=${PREFIX}"
 if [ "$(grep -c -- '--without-cxx' configure)" -ge 1 ]; then
     CONF_ARGS="${CONF_ARGS} --without-cxx"
@@ -109,6 +115,16 @@ make install
 # --- Gate -------------------------------------------------------------------
 # Assert the modules Zope actually needs, not merely that the binary runs.
 "${BIN}" -c "import zlib, sha, md5, crypt, socket, select, cPickle, cStringIO, binascii, struct, thread, datetime; print 'python gate ok'"
+
+# Without this, a missing _ssl only shows up as a NOTE below, and mail then
+# skips STARTTLS without any error (zope.sendmail checks hasattr(socket, 'ssl')).
+if [ "${PYTHON_REQUIRE_SSL:-0}" = "1" ]; then
+    # No _hashlib here: 2.7's setup.py parses OPENSSL_VERSION_NUMBER as a hex
+    # literal, OpenSSL 3 defines it as an expression, so it reads 0x00000000,
+    # calls the library "too old" and skips the module. hashlib then uses the
+    # built-in md5/sha* modules, which is all Zope needs.
+    "${BIN}" -c "import ssl, socket; assert hasattr(socket, 'ssl'); print 'ssl gate ok: ' + ssl.OPENSSL_VERSION"
+fi
 
 # Report skipped extensions so a silent loss is visible in the build log.
 FAILED="$(find "${PREFIX}/lib" -name '*_failed.so' -printf '%f ' 2>/dev/null || true)"

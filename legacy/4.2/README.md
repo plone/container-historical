@@ -53,6 +53,23 @@ toolchain never has to negotiate modern TLS. See
   condition it fixes.
 - **[V 2026-08-20]** lxml 2.3.6 builds against bookworm’s libxml2 2.9.14 once
   the dev packages are present — see the 4.1 README.
+- **[V 2026-10-11]** **The only legacy image with `ssl`.** Python is built
+  against bookworm's OpenSSL 3.0 (`libssl-dev` at build, `libssl3` and
+  `ca-certificates` at runtime). 2.7.18's `_ssl.c` compiles with warnings only
+  and negotiates TLS 1.3 for SMTP STARTTLS (587), SMTPS (465) and
+  certificate-verified HTTPS with SNI. `PYTHON_REQUIRE_SSL=1` makes the build
+  fail if `_ssl` is missing, and the runtime stage checks the module and the CA
+  bundle again. Before this, `import ssl` failed with `No module named _ssl`.
+  Three things change because of it:
+  - zope.sendmail 3.7.5 issues STARTTLS whenever the server advertises it
+    (before, it skipped STARTTLS and sent in plain text). OpenSSL 3's defaults
+    (TLS 1.2 minimum, `SECLEVEL=2`) reject relays that only speak TLS 1.0/1.1.
+    The certificate is not verified on STARTTLS. zope.sendmail has no SMTPS
+    support at all.
+  - `urllib2`/`httplib` verify HTTPS certificates (PEP 476).
+  - Not a change: `_hashlib` is still not built. 2.7's `setup.py` reads
+    OpenSSL 3's `OPENSSL_VERSION_NUMBER` as `0x00000000` and skips it, so
+    `hashlib` keeps using the built-in md5/sha modules.
 - **[V 2026-08-20]** Zope is 2.13.21. Zero product import/install errors; a site
   is created and renders ~19.9 kB. Passes twice.
 

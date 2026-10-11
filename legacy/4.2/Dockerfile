@@ -19,6 +19,11 @@
 # which is the main reason these images are built from the UnifiedInstaller
 # rather than assembled by hand.
 #
+# [V 2026-10-11] The only legacy image with ssl. Python 2.7.18's _ssl builds
+# against bookworm's OpenSSL 3.0 (warnings only) and negotiates TLS 1.3 for
+# SMTP STARTTLS, SMTPS and verified HTTPS with SNI. 2.6 and older cannot
+# compile against OpenSSL 3, so the rest of the matrix stays without it.
+#
 # NOT FOR PRODUCTION. This stack has known, unpatched security issues.
 # Intended for content extraction, migration, and archaeology only.
 
@@ -56,13 +61,13 @@ ARG PYTHON_VERSION
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-      gcc make libc6-dev zlib1g-dev libcrypt-dev \
+      gcc make libc6-dev zlib1g-dev libcrypt-dev libssl-dev \
  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=fetch /dist /dist
 COPY shared/build-python2.sh /usr/local/bin/build-python2.sh
 
-RUN build-python2.sh /dist/python.tgz "${PYTHON_VERSION}" /opt/python2.7
+RUN PYTHON_REQUIRE_SSL=1 build-python2.sh /dist/python.tgz "${PYTHON_VERSION}" /opt/python2.7
 
 # ---------------------------------------------------------------------------
 # Stage 2b: build — PIL, then the offline buildout.
@@ -108,6 +113,7 @@ LABEL org.opencontainers.image.title="Plone ${PLONE_VERSION} (legacy)" \
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       zlib1g libcrypt1 libjpeg62-turbo libxml2 libxslt1.1 \
+      libssl3 ca-certificates \
  && rm -rf /var/lib/apt/lists/* \
  && useradd --system -m -d /app -U -u 500 plone \
  && mkdir -p /data \
@@ -115,6 +121,10 @@ RUN apt-get update \
 
 COPY --from=build --chown=plone:plone /opt/python2.7 /opt/python2.7
 COPY --from=build --chown=plone:plone /app /app
+# The build-stage gate ran against libssl-dev; this one proves the runtime
+# libraries and the CA bundle (verified HTTPS) are present in the final image.
+RUN /opt/python2.7/bin/python2.7 -c "import ssl; ssl.create_default_context(); print 'runtime ssl ok: ' + ssl.OPENSSL_VERSION" \
+ && test -s /etc/ssl/certs/ca-certificates.crt
 COPY --chown=plone:plone shared/docker-entrypoint-buildout.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 COPY --chown=plone:plone shared/upgrade-plone.py /app/upgrade-plone.py
